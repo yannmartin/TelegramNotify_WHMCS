@@ -62,7 +62,3 @@ The module automatically sends notifications based on the configured settings. Y
 ## Contributing
 
 Contributions are welcome! Please submit a pull request or open an issue if you find any bugs or have suggestions for improvements.
-
-## License
-
-This module is licensed under the [MIT License](LICENSE).
