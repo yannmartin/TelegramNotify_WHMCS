@@ -1,3 +1,4 @@
+
 # Telegram Notification Module for WHMCS
 
 ## Description
@@ -22,6 +23,12 @@ This module integrates Telegram with WHMCS, allowing you to send notifications d
    - Log in to your WHMCS admin panel.
    - Go to **Setup** > **Notification Modules**.
    - Find the "Telegram" module in the list and activate it.
+
+4. **Install GuzzleHTTP:**
+   The module requires GuzzleHTTP to function. If not already installed, you can add it via Composer:
+   ```bash
+   composer require guzzlehttp/guzzle
+   ```
 
 ## Configuration
 
@@ -57,7 +64,16 @@ The module automatically sends notifications based on the configured settings. Y
 ## Troubleshooting
 
 - **No Response from API:** Ensure that your bot token and chat ID are correct and that your server can make outbound requests to the Telegram API.
-- **cURL Errors:** Check the server's cURL configuration and verify that outbound HTTPS requests are not blocked.
+- **HTTP Request Errors:** Ensure that your server's environment supports outbound HTTPS requests and that there are no issues with SSL verification. The module uses GuzzleHTTP for making API requests. Make sure GuzzleHTTP is installed and properly configured.
+- **Custom Exceptions:** The module uses custom exceptions like `TelegramRequestException` for HTTP request issues and `TelegramAPIException` for Telegram API errors. Review the error messages for more details.
+
+## Custom Exceptions
+
+This module introduces custom exceptions for better error handling:
+- `TelegramRequestException`: Raised when there is an issue with the HTTP request (e.g., network problems).
+- `TelegramAPIException`: Raised when the Telegram API responds with an error.
+
+If you encounter these exceptions, please refer to the error messages provided for troubleshooting.
 
 ## Contributing
 
