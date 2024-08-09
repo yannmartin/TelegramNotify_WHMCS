@@ -7,6 +7,8 @@ use WHMCS\Exception;
 use WHMCS\Module\Notification\DescriptionTrait;
 use WHMCS\Module\Contracts\NotificationModuleInterface;
 use WHMCS\Notification\Contracts\NotificationInterface;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 
 /**
  * Telegram notification implementation for WHMCS.
@@ -16,7 +18,7 @@ class Telegram implements NotificationModuleInterface
     use DescriptionTrait;
 
     const ERROR_NO_RESPONSE = 'No response received from API';
-    const ERROR_CURL = 'cURL error: ';
+    const ERROR_REQUEST = 'HTTP request error: ';
     const ERROR_TELEGRAM_API = 'Telegram API error: ';
 
     /**
@@ -105,13 +107,13 @@ class Telegram implements NotificationModuleInterface
     }
 
     /**
-     * Helper function to send a message using Telegram API via cURL.
+     * Helper function to send a message using the Telegram API via GuzzleHTTP.
      *
      * @param array $settings Bot settings
      * @param string $message Message to send
      * @param string $parseMode (optional) Specify the parse mode (default: none)
      * @return mixed Response from the Telegram API
-     * @throws Exception If there is a cURL error
+     * @throws Exception If there is a GuzzleHTTP error or Telegram API error
      */
     private function sendMessage($settings, $message, $parseMode = "")
     {
@@ -120,34 +122,30 @@ class Telegram implements NotificationModuleInterface
         $botChatID = $settings['botChatID'];
         $url = "https://api.telegram.org/bot$botToken/sendMessage";
 
+        $client = new Client();
+
         $postData = [
             'chat_id' => $botChatID,
             'text' => $message,
             'parse_mode' => $parseMode
         ];
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // Verify peer in production
+        try {
+            $response = $client->post($url, [
+                'form_params' => $postData,
+                'verify' => true, // SSL verification in production
+            ]);
 
-        $response = curl_exec($ch);
+            $responseData = json_decode($response->getBody()->getContents(), true);
 
-        if (curl_errno($ch)) {
-            throw new Exception(self::ERROR_CURL . curl_error($ch));
+            if (isset($responseData['ok']) && $responseData['ok'] === false) {
+                throw new Exception(self::ERROR_TELEGRAM_API . $responseData['description']);
+            }
+
+            return $responseData;
+        } catch (RequestException $e) {
+            throw new Exception(self::ERROR_REQUEST . $e->getMessage());
         }
-
-        $responseData = json_decode($response, true);
-
-        if (isset($responseData['ok']) && $responseData['ok'] === false) {
-            throw new Exception(self::ERROR_TELEGRAM_API . $responseData['description']);
-        }
-
-        curl_close($ch);
-
-        return $response;
     }
 
     /**
